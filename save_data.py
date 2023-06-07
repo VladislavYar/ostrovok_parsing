@@ -8,7 +8,7 @@ class SaveFile():
     def __init__(self) -> None:
         pass
 
-    def to_csv(self, data, path):
+    def to_csv(self, data, path: str) -> None:
         """Сохраняет данные в CSV."""
         keys = list(data[0].keys())
         with open(path, mode='w',
@@ -17,7 +17,7 @@ class SaveFile():
             writer.writeheader()
             writer.writerows(data)
 
-    def to_excel(self, data, path):
+    def to_excel(self, data, path: str) -> None:
         """Сохраняет данные в Excel."""
         keys = list(data[0].keys())
         workbook = Workbook()
