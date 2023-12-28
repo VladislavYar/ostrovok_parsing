@@ -12,7 +12,7 @@ cd
 ```
 Клонируйте репозиторий:
 ```
-git clone git@github.com:VladislavYar/freelance_site_3d_printer.git
+git clone git@github.com:VladislavYar/ostrovok_parsing.git
 ```
 
 Установить Chrome версии 112(или обновить драйвер с оффициального сайта)
