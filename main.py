@@ -1,11 +1,16 @@
+import re
 from datetime import datetime, timedelta
 from pprint import pprint
 
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver import Chrome, ChromeOptions
 from selenium.common.exceptions import (
     NoSuchElementException, NoSuchWindowException, WebDriverException
 )
+from webdriver_manager.chrome import ChromeDriverManager
+
+from constants import HOTELS_ON_PAGE
 
 
 class ParsingWebsiteOstrovok():
@@ -13,7 +18,8 @@ class ParsingWebsiteOstrovok():
     def __init__(self) -> None:
         options = ChromeOptions()
         options.add_argument("log-level=3")
-        self.driver = Chrome(options=options)
+        service = Service(executable_path=ChromeDriverManager().install())
+        self.driver = Chrome(options=options, service=service)
         self.website = 'https://ostrovok.ru/hotel/russia'
         self.count_hotel = 0
 
@@ -98,9 +104,9 @@ class ParsingWebsiteOstrovok():
                 html_class = ('zenserpresult-header')
                 html_hotel_count = self.driver.find_element(By.CLASS_NAME,
                                                             html_class)
-                self.count_hotel = int(html_hotel_count.text.split(' ')[2])
-                hotels_on_page = 20
-                self.count_page = self.count_hotel / hotels_on_page
+                self.count_hotel = int(re.findall(r'\d+',
+                                                  html_hotel_count.text)[0])
+                self.count_page = self.count_hotel / HOTELS_ON_PAGE
             except IndexError:
                 self.driver.quit()
                 return []
