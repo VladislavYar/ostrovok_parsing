@@ -6,116 +6,128 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver import Chrome, ChromeOptions
 from selenium.common.exceptions import (
-    NoSuchElementException, NoSuchWindowException, WebDriverException
+    NoSuchElementException,
+    NoSuchWindowException,
+    WebDriverException,
 )
 from webdriver_manager.chrome import ChromeDriverManager
 
-from constants import HOTELS_ON_PAGE
+from constants import ARGS_OPTION
 
 
-class ParsingWebsiteOstrovok():
+def _get_valid_dates() -> str:
+    """Фомирует валидную дефолтную дату."""
+    today = datetime.today()
+    tomorrow = today + timedelta(days=1)
+    return f'{today.strftime("%d.%m.%Y")}-{tomorrow.strftime("%d.%m.%Y")}'
+
+
+class ParsingWebsiteOstrovok:
     """Парсинг по сайту ostrovok.ru."""
+
     def __init__(self) -> None:
         options = ChromeOptions()
-        options.add_argument("log-level=3")
+        for option in ARGS_OPTION:
+            options.add_argument(option)
         service = Service(executable_path=ChromeDriverManager().install())
         self.driver = Chrome(options=options, service=service)
-        self.website = 'https://ostrovok.ru/hotel/russia'
-        self.count_hotel = 0
+        self.website = "https://ostrovok.ru/hotel/russia"
 
     def forms_hotel_data(self, html_hotel_data: list) -> list[dict]:
         """Формирует данные по каждому отелю."""
         html_classes = (
-            'zen-hotelcard-name-link', 'zen-hotelcard-rate-price-value',
-            'zen-hotelcard-rating-wrapper-extended',
-            'zen-hotelcard-distance', 'zenimage-content',
+            "HotelCard_name__c5UCt",
+            "HotelCard_ratePriceValue__pM3PF",
+            "HotelTotalRating_content__P2vvd",
+            "Distances_distance__nZSAn",
+            "Gallery_item__PBSnW",
+            "HotelRating_reviewsCount__zr496",
         )
         hotels = []
         for data in html_hotel_data:
             try:
                 name = data.find_element(By.CLASS_NAME, html_classes[0]).text
             except NoSuchElementException:
-                name = 'Название отсутсвует'
+                name = "Название отсутсвует"
             try:
-                URL = data.find_element(By.CLASS_NAME,
-                                        html_classes[0]).get_attribute('href')
+                URL = data.find_element(By.CLASS_NAME, html_classes[0]).get_attribute(
+                    "href"
+                )
             except NoSuchElementException:
-                URL = 'URL отсуствует'
+                URL = "URL отсуствует"
             try:
-                price = data.find_element(By.CLASS_NAME,
-                                          html_classes[1]).text.replace(' ',
-                                                                        '')
+                price = data.find_element(By.CLASS_NAME, html_classes[1]).text
             except NoSuchElementException:
-                price = 'Цена отсутсвует'
+                price = "Цена отсутсвует"
             try:
-                rating_reviews = (
-                    data.find_element(By.CLASS_NAME,
-                                      html_classes[2]).text.split('\n')
-                    )
-                try:
-                    reviews = rating_reviews[1]
-                    rating = rating_reviews[0]
-                except IndexError:
-                    rating = rating_reviews[0]
-                    reviews = 'Отзывы отсутсвуют'
+                rating = data.find_element(By.CLASS_NAME, html_classes[2]).text
             except NoSuchElementException:
-                rating = 'Оценка отсутсвует'
-                reviews = 'Отзывы отсутсвуют'
+                rating = "Оценка отсутсвует"
             try:
-                distance = data.find_element(By.CLASS_NAME,
-                                             html_classes[3]).text
-            except NoSuchElementException:
-                distance = 'Расстояние до центра отсутсвует'
+                reviews = data.find_element(By.CLASS_NAME, html_classes[-1]).text
+            except IndexError:
+                rating = "Отзывы отсутсвуют"
             try:
-                img = data.find_element(By.CLASS_NAME,
-                                        html_classes[4]).get_attribute('src')
+                distance = data.find_element(By.CLASS_NAME, html_classes[3]).text
             except NoSuchElementException:
-                img = 'Фото отсутсвует'
+                distance = "Расстояние до центра отсутсвует"
+            try:
+                img = data.find_element(By.CLASS_NAME, html_classes[4]).get_attribute(
+                    "src"
+                )
+            except NoSuchElementException:
+                img = "Фото отсутсвует"
             hotel_data = {
-                'Название': name, 'URL': URL, 'Цена': price, 'Рейтинг': rating,
-                'Отзывы': reviews, 'Расстояние': distance, 'Фото': img,
-                }
+                "Название": name,
+                "URL": URL,
+                "Цена": price,
+                "Рейтинг": rating,
+                "Отзывы": reviews,
+                "Расстояние": distance,
+                "Фото": img,
+            }
             hotels.append(hotel_data)
         return hotels
 
-    def _search_hotel_new_page_data(self) -> list[dict] or list:
+    def _search_hotel_new_page_data(self) -> list[dict] | list:
         """Рекурсия для поиска данных, на новой странице."""
-        if self.page < self.count_page:
-            new_page = self.page + 1
-            url = self.get_url(
-                self.city, self.date, self.guests, self.amenities,
-                self.bedding_types, self.meal_types, self.payment,
-                new_page, self.price, self.reviews_rating,
-                self.group, self.sort
-            )
-            return self.get_hotel_data(url)
-        self.driver.quit()
-        return []
+        new_page = self.page + 1
+        url = self.get_url(
+            self.city,
+            self.date,
+            self.guests,
+            self.amenities,
+            self.bedding_types,
+            self.meal_types,
+            self.payment,
+            new_page,
+            self.price,
+            self.reviews_rating,
+            self.group,
+            self.sort,
+        )
+        return self.get_hotel_data(url)
 
-    def search_hotel_data(self) -> list[dict] or list:
+    def search_hotel_data(self) -> list[dict] | list:
         """Ищет каждый отель."""
-        html_class = 'hotel-wrapper'
-        html_hotel_data = self.driver.find_elements(By.CLASS_NAME,
-                                                    html_class)
-        data = self.forms_hotel_data(html_hotel_data)
-
-        if not self.count_hotel:
-            try:
-                html_class = ('zenserpresult-header')
-                html_hotel_count = self.driver.find_element(By.CLASS_NAME,
-                                                            html_class)
-                self.count_hotel = int(re.findall(r'\d+',
-                                                  html_hotel_count.text)[0])
-                self.count_page = self.count_hotel / HOTELS_ON_PAGE
-            except IndexError:
+        data = []
+        try:
+            html_class = "HotelListDatefull_card__Z82uV"
+            html_hotel_data = self.driver.find_elements(By.CLASS_NAME, html_class)
+            data.extend(self.forms_hotel_data(html_hotel_data))
+            new_data_page = self._search_hotel_new_page_data()
+            if (
+                not len(new_data_page)
+                or new_data_page[0]["Название"] == "Название отсутсвует"
+            ):
                 self.driver.quit()
-                return []
-
-        data.extend(self._search_hotel_new_page_data())
-
+                return data
+            data.extend(new_data_page)
+        except NoSuchElementException:
+            self.driver.quit()
         return data
 
-    def get_hotel_data(self, url: str) -> list[dict] or list:
+    def get_hotel_data(self, url: str) -> list[dict] | list:
         """Возвращает данные по отелям."""
         try:
             self.driver.get(url)
@@ -123,32 +135,60 @@ class ParsingWebsiteOstrovok():
         except (WebDriverException, NoSuchWindowException):
             return []
 
-    def _get_valid_dates() -> str:
-        """Фомирует валидную дефолтную дату."""
-        today = datetime.today()
-        tomorrow = today + timedelta(days=1)
-        return f'{today.strftime("%d.%m.%Y")}-{tomorrow.strftime("%d.%m.%Y")}'
-
-    def get_url(self, city='tula', date=_get_valid_dates(), guests='1',
-                amenities='', bedding_types='', meal_types='', payment='',
-                page=1, price='one', reviews_rating='', group='', sort=''
-                ) -> str:
+    def get_url(
+        self,
+        city="tula",
+        date=_get_valid_dates(),
+        guests="1",
+        amenities="",
+        bedding_types="",
+        meal_types="",
+        payment="",
+        page=1,
+        price="one",
+        reviews_rating="",
+        group="",
+        sort="",
+    ) -> str:
         """Формирует URL."""
-        (self.city, self.date, self.guests, self.amenities,
-         self.bedding_types, self.meal_types, self.payment, self.page,
-         self.price, self.reviews_rating, self.group, self.sort) = (
-            city, date, guests, amenities, bedding_types, meal_types, payment,
-            page, price, reviews_rating, group, sort
-            )
-        url = (f'{self.website}/{city}/?dates={date}&guests={guests}'
-               f'&amenities={amenities}&bedding_types={bedding_types}'
-               f'&meal_types={meal_types}&payment={payment}'
-               f'&page={page}&price={price}&reviews_rating={reviews_rating}'
-               f'&type_group={group}&sort={sort}')
+        (
+            self.city,
+            self.date,
+            self.guests,
+            self.amenities,
+            self.bedding_types,
+            self.meal_types,
+            self.payment,
+            self.page,
+            self.price,
+            self.reviews_rating,
+            self.group,
+            self.sort,
+        ) = (
+            city,
+            date,
+            guests,
+            amenities,
+            bedding_types,
+            meal_types,
+            payment,
+            page,
+            price,
+            reviews_rating,
+            group,
+            sort,
+        )
+        url = (
+            f"{self.website}/{city}/?dates={date}&guests={guests}"
+            f"&amenities={amenities}&bedding_types={bedding_types}"
+            f"&meal_types={meal_types}&payment={payment}"
+            f"&page={page}&price={price}&reviews_rating={reviews_rating}"
+            f"&type_group={group}&sort={sort}"
+        )
         return url
 
 
-if '__main__' == __name__:
+if "__main__" == __name__:
     parser = ParsingWebsiteOstrovok()
     url = parser.get_url()
     pprint(parser.get_hotel_data(url))

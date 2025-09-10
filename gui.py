@@ -8,13 +8,21 @@ from PyQt6.QtWidgets import QMessageBox, QFileDialog
 
 from main import ParsingWebsiteOstrovok
 from save_data import SaveFile
-from constants import (CITY, TYPE_GROUP, AMENITIES,
-                       MEAL_TYPES, REVIEWS_RATING,
-                       PAYMENT, BEDDING_TYPES, SORT)
+from constants import (
+    CITY,
+    TYPE_GROUP,
+    AMENITIES,
+    MEAL_TYPES,
+    REVIEWS_RATING,
+    PAYMENT,
+    BEDDING_TYPES,
+    SORT,
+)
 
 
 class LoadDataHotalThread(QThread):
     """Поток для поиска данных."""
+
     load_finished = pyqtSignal(object)
 
     def __init__(self, parser: ParsingWebsiteOstrovok, url: str) -> None:
@@ -28,13 +36,14 @@ class LoadDataHotalThread(QThread):
         self.load_finished.emit(data)
 
 
-class SearchHotel():
+class SearchHotel:
     """Поиск и вывод данных по отелям."""
+
     def __init__(self, win):
         self.win = win
         self.win.search.clicked.connect(self.search_hotel)
-        self.win.CSV.triggered.connect(lambda: self._file_save('*.csv'))
-        self.win.Excel.triggered.connect(lambda: self._file_save('*.xls'))
+        self.win.CSV.triggered.connect(lambda: self._file_save("*.csv"))
+        self.win.Excel.triggered.connect(lambda: self._file_save("*.xls"))
         self.msg = QMessageBox()
         self.save = SaveFile()
         self.data = {}
@@ -44,9 +53,9 @@ class SearchHotel():
         """Сохраняет данные в файл."""
         dir = QFileDialog.getSaveFileName(filter=name_extension)
         path = dir[0]
-        if dir[1] == '*.csv':
+        if dir[1] == "*.csv":
             self.save.to_csv(self.data, path)
-        elif dir[1] == '*.xls':
+        elif dir[1] == "*.xls":
             self.save.to_excel(self.data, path)
 
     def _setting(self):
@@ -54,9 +63,7 @@ class SearchHotel():
         today = datetime.today()
         date_now = int(today.year), int(today.month), int(today.day)
         tomorrow = today + timedelta(days=1)
-        date_tomorrow = (
-            int(tomorrow.year), int(tomorrow.month), int(tomorrow.day)
-        )
+        date_tomorrow = (int(tomorrow.year), int(tomorrow.month), int(tomorrow.day))
         q_date_now = QDate(*date_now)
         q_date_tomorrow = QDate(*date_tomorrow)
         self.win.beginning_day.setDate(q_date_now)
@@ -99,7 +106,7 @@ class SearchHotel():
             self.msg.setStandardButtons(QMessageBox.StandardButton.Cancel)
             self.msg.exec()
         self.win.search.setEnabled(True)
-        self.win.search.setText('Поиск')
+        self.win.search.setText("Поиск")
 
     def _get_selected_items(self, items: list, items_filters: dict) -> str:
         """Формирует строку для поиска из выбранных элементов в таблице."""
@@ -111,15 +118,15 @@ class SearchHotel():
 
     def _generates_data_url(self) -> tuple:
         """Формирует данные для поиска."""
-        beginning_day = win.beginning_day.date().toString('dd.MM.yyyy')
-        end_day = win.end_day.date().toString('dd.MM.yyyy')
-        date = f'{beginning_day}-{end_day}'
+        beginning_day = win.beginning_day.date().toString("dd.MM.yyyy")
+        end_day = win.end_day.date().toString("dd.MM.yyyy")
+        date = f"{beginning_day}-{end_day}"
 
         min_price = self.win.min_price.text()
         max_price = self.win.max_price.text()
-        price = f'{min_price}-{max_price}.one'
+        price = f"{min_price}-{max_price}.one"
         if int(min_price) == 100 and int(max_price) == 100000:
-            price = 'one'
+            price = "one"
 
         guest = self.win.guest.text()
 
@@ -152,8 +159,18 @@ class SearchHotel():
         bedding_types = self._get_selected_items(values, BEDDING_TYPES)
 
         values = (
-            city, date, guest, amenities, bedding_types, meal_types, payment,
-            page, price, reviews_rating, type_group, sort
+            city,
+            date,
+            guest,
+            amenities,
+            bedding_types,
+            meal_types,
+            payment,
+            page,
+            price,
+            reviews_rating,
+            type_group,
+            sort,
         )
         return values
 
@@ -161,7 +178,7 @@ class SearchHotel():
         """Создаёт поток поиска."""
         self.win.save.setEnabled(False)
         self.win.search.setEnabled(False)
-        self.win.search.setText('Ведётся поиск...')
+        self.win.search.setText("Ведётся поиск...")
         parser = ParsingWebsiteOstrovok()
         data = self._generates_data_url()
         url = parser.get_url(*data)
@@ -171,7 +188,7 @@ class SearchHotel():
         self.thread.start()
 
 
-if '__main__' == __name__:
+if "__main__" == __name__:
     app = QtWidgets.QApplication([])
     win = uic.loadUi("gui.ui")
     win.show()
