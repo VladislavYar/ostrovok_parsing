@@ -4,10 +4,13 @@ from pprint import pprint
 
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver import Chrome, ChromeOptions
 from selenium.common.exceptions import (
     NoSuchElementException,
     NoSuchWindowException,
+    TimeoutException,
     WebDriverException,
 )
 from webdriver_manager.chrome import ChromeDriverManager
@@ -36,43 +39,43 @@ class ParsingWebsiteOstrovok:
     def forms_hotel_data(self, html_hotel_data: list) -> list[dict]:
         """Формирует данные по каждому отелю."""
         html_classes = (
-            "HotelCard_name__c5UCt",
-            "HotelCard_ratePriceValue__pM3PF",
-            "HotelTotalRating_content__P2vvd",
-            "Distances_distance__nZSAn",
-            "Gallery_item__PBSnW",
-            "HotelRating_reviewsCount__zr496",
+            '[data-testid="hotel-card-name"]',
+            '[data-testid="hotel-card-price-value"]',
+            '[data-testid="hotel-card-rating-content"]',
+            '[data-testid="hotel-card-distance-center"]',
+            'img[class*="GalleryImage_item"]',
+            '[class*="HotelRating_reviewsCount"]',
         )
         hotels = []
         for data in html_hotel_data:
             try:
-                name = data.find_element(By.CLASS_NAME, html_classes[0]).text
+                name = data.find_element(By.CSS_SELECTOR, html_classes[0]).text
             except NoSuchElementException:
                 name = "Название отсутсвует"
             try:
-                URL = data.find_element(By.CLASS_NAME, html_classes[0]).get_attribute(
+                URL = data.find_element(By.CSS_SELECTOR, html_classes[0]).get_attribute(
                     "href"
                 )
             except NoSuchElementException:
                 URL = "URL отсуствует"
             try:
-                price = data.find_element(By.CLASS_NAME, html_classes[1]).text
+                price = data.find_element(By.CSS_SELECTOR, html_classes[1]).text
             except NoSuchElementException:
                 price = "Цена отсутсвует"
             try:
-                rating = data.find_element(By.CLASS_NAME, html_classes[2]).text
+                rating = data.find_element(By.CSS_SELECTOR, html_classes[2]).text
             except NoSuchElementException:
                 rating = "Оценка отсутсвует"
             try:
-                reviews = data.find_element(By.CLASS_NAME, html_classes[-1]).text
-            except IndexError:
-                rating = "Отзывы отсутсвуют"
+                reviews = data.find_element(By.CSS_SELECTOR, html_classes[-1]).text
+            except NoSuchElementException:
+                reviews = "Отзывы отсутсвуют"
             try:
-                distance = data.find_element(By.CLASS_NAME, html_classes[3]).text
+                distance = data.find_element(By.CSS_SELECTOR, html_classes[3]).text
             except NoSuchElementException:
                 distance = "Расстояние до центра отсутсвует"
             try:
-                img = data.find_element(By.CLASS_NAME, html_classes[4]).get_attribute(
+                img = data.find_element(By.CSS_SELECTOR, html_classes[4]).get_attribute(
                     "src"
                 )
             except NoSuchElementException:
@@ -112,8 +115,17 @@ class ParsingWebsiteOstrovok:
         """Ищет каждый отель."""
         data = []
         try:
-            html_class = "HotelListDatefull_card__Z82uV"
-            html_hotel_data = self.driver.find_elements(By.CLASS_NAME, html_class)
+            html_class = '[class*="HotelListDatefull_card"]'
+            try:
+                WebDriverWait(self.driver, 10).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, html_class))
+                )
+            except TimeoutException:
+                pass
+            html_hotel_data = self.driver.find_elements(By.CSS_SELECTOR, html_class)
+            if not html_hotel_data:
+                self.driver.quit()
+                return data
             data.extend(self.forms_hotel_data(html_hotel_data))
             new_data_page = self._search_hotel_new_page_data()
             if (
